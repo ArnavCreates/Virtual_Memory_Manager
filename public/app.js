@@ -53,6 +53,10 @@
     presetSelect: document.getElementById('presetSelect'),
     loadingIndicator: document.getElementById('loadingIndicator'),
     errorBanner: document.getElementById('errorBanner'),
+    statusToast: document.getElementById('statusToast'),
+    toastIcon: document.getElementById('toastIcon'),
+    toastMessage: document.getElementById('toastMessage'),
+    toastCloseBtn: document.getElementById('toastCloseBtn'),
     highlightInfo: document.getElementById('highlightInfo'),
 
     // ALLOC
@@ -104,6 +108,8 @@
     statAllocBlocks: document.getElementById('statAllocBlocks'),
     statFrag: document.getElementById('statFrag'),
     statWaiting: document.getElementById('statWaiting'),
+    statFragCard: document.getElementById('statFragCard'),
+    blockTableCard: document.getElementById('blockTableCard'),
 
     // Compare
     compareSection: document.getElementById('compareSection'),
@@ -145,6 +151,39 @@
       el.errorBanner.classList.remove('hidden');
       el.errorBanner.textContent = msg;
     }
+  }
+
+  let toastTimer = null;
+  function showToast(status, message, details) {
+    if (!el.statusToast) return;
+    if (!message) {
+      el.statusToast.classList.add('hidden');
+      return;
+    }
+    clearTimeout(toastTimer);
+    el.statusToast.className = `status-toast status-${status}`;
+
+    let icon = 'ℹ️';
+    if (status === 'OK') icon = '✅';
+    else if (status === 'QUEUED') icon = '⏳';
+    else if (status === 'ERROR') icon = '⚠️';
+    else if (status === 'INFO') {
+      if (message.includes('Fragmentation')) icon = '📊';
+      else if (message.includes('found in hash')) icon = '🔍';
+      else if (message.includes('Allocated') || message.includes('Free') || message.includes('layout')) icon = '📋';
+    }
+    el.toastIcon.textContent = icon;
+
+    let text = message;
+    if (details && details.length > 0) {
+      text += ' (' + details.join(', ') + ')';
+    }
+    el.toastMessage.textContent = text;
+    el.statusToast.classList.remove('hidden');
+
+    toastTimer = setTimeout(() => {
+      el.statusToast.classList.add('hidden');
+    }, 7000);
   }
 
   // Next PID suggestion
@@ -472,7 +511,7 @@
   }
 
   // Update simulation state and refresh UI
-  async function updateSimulation() {
+  async function updateSimulation(showToastForLast = false) {
     showError(null);
     setControlsDisabled(true);
 
@@ -495,17 +534,23 @@
 
       updateFreeDropdown(data.blocks, data.waitingQueue);
       suggestNextPid(data.blocks, data.waitingQueue);
+
+      if (showToastForLast && data.log && data.log.length > 0) {
+        const lastEntry = data.log[data.log.length - 1];
+        showToast(lastEntry.status, lastEntry.message, lastEntry.details);
+      }
     } catch (err) {
       showError(err.message || 'Failed to communicate with simulation engine');
+      showToast('ERROR', err.message || 'Simulation execution failed');
     } finally {
       setControlsDisabled(false);
     }
   }
 
-  function appendCommand(cmd) {
+  function appendCommand(cmd, showToastForLast = true) {
     if (!cmd || !cmd.trim()) return;
     state.commands.push(cmd.trim());
-    updateSimulation();
+    updateSimulation(showToastForLast);
   }
 
   // Strategy Comparison Runner
@@ -623,62 +668,99 @@
       updateSimulation();
     });
 
+    if (el.toastCloseBtn) {
+      el.toastCloseBtn.addEventListener('click', () => {
+        el.statusToast.classList.add('hidden');
+        clearTimeout(toastTimer);
+      });
+    }
+
     // ALLOC
     el.allocBtn.addEventListener('click', () => {
       const pid = (el.allocPidInput.value || '').trim();
       const size = parseInt(el.allocSizeInput.value, 10);
       if (!pid) {
-        showError('Please enter a Process ID');
+        showToast('ERROR', 'Please enter a Process ID');
         return;
       }
       if (isNaN(size) || size < 1) {
-        showError('Allocation size must be at least 1 unit');
+        showToast('ERROR', 'Allocation size must be at least 1 unit');
         return;
       }
-      appendCommand(`ALLOC ${pid} ${size}`);
+      appendCommand(`ALLOC ${pid} ${size}`, true);
     });
 
     // FREE
     el.freeBtn.addEventListener('click', () => {
       const pid = el.freePidSelect.value;
       if (!pid) return;
-      appendCommand(`FREE ${pid}`);
+      appendCommand(`FREE ${pid}`, true);
     });
 
     // FIND
     el.findBtn.addEventListener('click', () => {
       const pid = (el.findPidInput.value || '').trim();
       if (!pid) {
-        showError('Please enter a Process ID to find');
+        showToast('ERROR', 'Please enter a Process ID to find');
         return;
       }
-      appendCommand(`FIND ${pid}`);
+      appendCommand(`FIND ${pid}`, true);
       setHighlightedPid(pid);
     });
 
     // Actions
-    el.compactBtn.addEventListener('click', () => appendCommand('COMPACT'));
-    el.fragBtn.addEventListener('click', () => appendCommand('FRAG'));
+    el.compactBtn.addEventListener('click', () => appendCommand('COMPACT', true));
 
+    // FRAG
+    el.fragBtn.addEventListener('click', () => {
+      appendCommand('FRAG', true);
+      if (el.statFragCard) {
+        el.statFragCard.classList.remove('pulse-highlight');
+        void el.statFragCard.offsetWidth; // Trigger reflow to restart animation
+        el.statFragCard.classList.add('pulse-highlight');
+      }
+    });
+
+    // DISPLAY ALL
     el.displayAllBtn.addEventListener('click', () => {
       setFilter('ALL');
-      appendCommand('DISPLAY');
+      appendCommand('DISPLAY', true);
+      setTimeout(() => {
+        if (el.blockTableCard) {
+          el.blockTableCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 120);
     });
 
+    // DISPLAY ALLOCATED
     el.displayAllocatedBtn.addEventListener('click', () => {
       setFilter('ALLOCATED');
-      appendCommand('DISPLAY ALLOCATED');
+      appendCommand('DISPLAY ALLOCATED', true);
+      setTimeout(() => {
+        if (el.blockTableCard) {
+          el.blockTableCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 120);
     });
 
+    // DISPLAY FREE
     el.displayFreeBtn.addEventListener('click', () => {
       setFilter('FREE');
-      appendCommand('DISPLAY FREE');
+      appendCommand('DISPLAY FREE', true);
+      setTimeout(() => {
+        if (el.blockTableCard) {
+          el.blockTableCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 120);
     });
 
     el.undoBtn.addEventListener('click', () => {
       if (state.commands.length > 0) {
-        state.commands.pop();
-        updateSimulation();
+        const undone = state.commands.pop();
+        updateSimulation(false);
+        showToast('INFO', `Undid command: ${undone}`);
+      } else {
+        showToast('INFO', 'No commands to undo');
       }
     });
 
@@ -686,7 +768,8 @@
       if (state.commands.length === 0 || confirm('Reset all memory and clear history?')) {
         state.commands = [];
         state.highlightedPid = null;
-        updateSimulation();
+        updateSimulation(false);
+        showToast('INFO', 'Memory reset to initial empty state (1000 free units)');
       }
     });
 

@@ -22,6 +22,15 @@
       </div>
     </header>
 
+    <!-- Interactive Status Toast / Notification Banner -->
+    <div id="statusToast" class="status-toast hidden" role="status" aria-live="polite">
+      <div class="toast-content">
+        <span id="toastIcon" class="toast-icon">ℹ️</span>
+        <span id="toastMessage" class="toast-message"></span>
+      </div>
+      <button id="toastCloseBtn" class="toast-close" title="Dismiss">&times;</button>
+    </div>
+
     <!-- Error Banner -->
     <div id="errorBanner" class="error-banner hidden" role="alert"></div>
 
@@ -184,7 +193,7 @@
           <div class="stat-value" id="statAllocBlocks">0</div>
           <div class="stat-label">Allocated Blocks</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="statFragCard">
           <div class="stat-value" id="statFrag">0.00%</div>
           <div class="stat-label">External Fragmentation</div>
         </div>
@@ -227,7 +236,7 @@
       </section>
 
       <!-- Block Table -->
-      <section class="card block-table-card">
+      <section class="card block-table-card" id="blockTableCard">
         <div class="table-header-row">
           <h2>Memory Block Table</h2>
           <div class="filter-tab-bar">

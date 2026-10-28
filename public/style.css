@@ -126,6 +126,92 @@ body {
   display: none !important;
 }
 
+/* Status Toast / Notification Banner */
+.status-toast {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.15rem;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  font-weight: 500;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  animation: toastSlideDown 0.25s ease;
+  transition: all 0.2s ease;
+}
+
+@keyframes toastSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.toast-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.toast-message {
+  line-height: 1.4;
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: currentColor;
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 0 0.4rem;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}
+
+.status-toast.status-OK {
+  background-color: rgba(16, 185, 129, 0.18);
+  border: 1px solid var(--success);
+  color: #6ee7b7;
+}
+
+.status-toast.status-INFO {
+  background-color: rgba(14, 165, 233, 0.18);
+  border: 1px solid var(--info);
+  color: #7dd3fc;
+}
+
+.status-toast.status-QUEUED {
+  background-color: rgba(245, 158, 11, 0.18);
+  border: 1px solid var(--warning);
+  color: #fde68a;
+}
+
+.status-toast.status-ERROR {
+  background-color: rgba(239, 68, 68, 0.18);
+  border: 1px solid var(--danger);
+  color: #fca5a5;
+}
+
+/* Card Pulse Animation */
+@keyframes cardPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(56, 189, 248, 0); }
+  50% { transform: scale(1.06); box-shadow: 0 0 22px 6px rgba(56, 189, 248, 0.7); border-color: var(--info); }
+  100% { transform: scale(1); box-shadow: 0 0 0 rgba(56, 189, 248, 0); }
+}
+
+.pulse-highlight {
+  animation: cardPulse 1.2s ease !important;
+}
+
 /* Error Banner */
 .error-banner {
   background-color: #ef444420;
