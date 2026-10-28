@@ -1,32 +1,20 @@
-# Prerequisites
-*.d
+# Node dependencies
+node_modules/
 
-# Compiled Object files
-*.slo
-*.lo
+# Vercel deployment cache
+.vercel/
+
+# Native build artifacts
+backend/build/
 *.o
 *.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
 *.exe
 *.out
 *.app
+
+# Keep WebAssembly bundle committed
+!wasm/vmm.js
+
+# OS generated files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  native-tests:
+    name: Native C++ Tests & CLI Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+
+      - name: Run native C++ tests with Address & Undefined Sanitizers
+        run: make -C backend test
+
+      - name: Build native CLI executable
+        run: make -C backend cli
+
+      - name: Verify CLI with piped commands
+        run: |
+          printf "ALLOC P1 200\nALLOC P2 100\nFREE P1\nDISPLAY\nEXIT\n" | ./backend/build/vmm
+
+  wasm-smoke:
+    name: WebAssembly & Node Smoke Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run WebAssembly smoke test suite
+        run: npm run smoke
+
+      - name: Set up Emscripten (emsdk)
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.58
+
+      - name: Rebuild WebAssembly binary with Emscripten
+        run: bash backend/build_wasm.sh
+
+      - name: Re-run smoke tests with fresh Emscripten build
+        run: npm run smoke

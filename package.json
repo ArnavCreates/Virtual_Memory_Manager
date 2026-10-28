@@ -1,0 +1,25 @@
+{
+  "name": "virtual-memory-manager",
+  "version": "1.0.0",
+  "description": "Virtual Memory Manager: A Dynamic Memory Allocation Simulator Using Linked Lists, Queues and Hash Tables",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "build:wasm": "bash backend/build_wasm.sh || backend\\build_wasm.bat",
+    "test": "make -C backend test || mingw32-make -C backend test",
+    "smoke": "node scripts/smoke-test.js"
+  },
+  "keywords": [
+    "memory-manager",
+    "virtual-memory",
+    "data-structures",
+    "cpp17",
+    "webassembly",
+    "first-fit",
+    "best-fit"
+  ],
+  "author": "Antigravity Pair Programmer",
+  "license": "MIT"
+}

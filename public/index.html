@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Memory Manager Simulator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-main">
+        <h1>Virtual Memory Manager</h1>
+        <p class="subtitle">Dynamic contiguous memory allocation simulator using custom Doubly Linked Lists, FIFO Queues, and Hash Tables</p>
+      </div>
+      <div class="header-badge">
+        <span class="badge">Backend: C++17 &rarr; WebAssembly</span>
+        <div id="loadingIndicator" class="loading-indicator hidden">
+          <span class="spinner"></span> Running C++ engine...
+        </div>
+      </div>
+    </header>
+
+    <!-- Error Banner -->
+    <div id="errorBanner" class="error-banner hidden" role="alert"></div>
+
+    <!-- Setup Panel -->
+    <section class="card setup-card">
+      <h2>Simulation Setup</h2>
+      <div class="setup-grid">
+        <div class="form-group">
+          <label for="totalMemoryInput">Total Memory Units:</label>
+          <div class="input-with-button">
+            <input type="number" id="totalMemoryInput" value="1000" min="64" max="100000" step="10">
+            <button id="applyMemoryBtn" class="btn btn-secondary">Apply &amp; Reset</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="strategySelect">Allocation Strategy:</label>
+          <select id="strategySelect">
+            <option value="FIRST_FIT">First Fit (First matching block)</option>
+            <option value="BEST_FIT">Best Fit (Smallest matching block)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="presetSelect">Preset Scenarios:</label>
+          <select id="presetSelect">
+            <option value="" disabled selected>-- Select a scenario to load --</option>
+            <option value="basic">1. Basic Allocation &amp; Free (1000 units)</option>
+            <option value="comparison">2. First Fit vs Best Fit (1000 units)</option>
+            <option value="queue">3. Waiting Queue &amp; Auto-Retry (500 units)</option>
+            <option value="compaction">4. Fragmentation &amp; Compaction (1000 units)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Command Panel -->
+    <section class="card command-card">
+      <h2>Interactive Command Panel</h2>
+      <div class="command-grid">
+        <!-- ALLOC -->
+        <div class="command-box">
+          <h3>Allocate Memory (ALLOC)</h3>
+          <div class="command-row">
+            <input type="text" id="allocPidInput" placeholder="PID (e.g. P1)" maxlength="16" value="P1">
+            <input type="number" id="allocSizeInput" placeholder="Size" min="1" value="200">
+            <button id="allocBtn" class="btn btn-primary">Allocate</button>
+          </div>
+        </div>
+
+        <!-- FREE -->
+        <div class="command-box">
+          <h3>Release Memory (FREE)</h3>
+          <div class="command-row">
+            <select id="freePidSelect">
+              <option value="" disabled selected>No processes</option>
+            </select>
+            <button id="freeBtn" class="btn btn-warning">Release</button>
+          </div>
+        </div>
+
+        <!-- FIND -->
+        <div class="command-box">
+          <h3>Lookup Process (FIND)</h3>
+          <div class="command-row">
+            <input type="text" id="findPidInput" placeholder="PID" maxlength="16" value="P1">
+            <button id="findBtn" class="btn btn-info" title="O(1) hash table lookup">Find ($O(1)$ Hash)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons-row">
+        <button id="compactBtn" class="btn btn-success">Compact Memory</button>
+        <button id="fragBtn" class="btn btn-outline">Fragmentation Report</button>
+        <button id="displayAllBtn" class="btn btn-outline">Display All</button>
+        <button id="displayAllocatedBtn" class="btn btn-outline">Display Allocated</button>
+        <button id="displayFreeBtn" class="btn btn-outline">Display Free</button>
+        <button id="undoBtn" class="btn btn-secondary">Undo Last</button>
+        <button id="resetBtn" class="btn btn-danger">Reset All</button>
+        <button id="compareBtn" class="btn btn-purple">Compare First vs Best Fit</button>
+      </div>
+
+      <!-- Script Box -->
+      <details class="script-details">
+        <summary><strong>Batch Script Runner</strong> (Paste multiple commands)</summary>
+        <div class="script-content">
+          <textarea id="scriptInput" rows="4" placeholder="# Enter commands, one per line:&#10;ALLOC P1 200&#10;ALLOC P2 100&#10;FREE P1&#10;COMPACT"></textarea>
+          <div class="script-buttons">
+            <button id="runScriptBtn" class="btn btn-primary">Run Script</button>
+            <button id="clearScriptBtn" class="btn btn-secondary">Clear</button>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- Compare Mode View (hidden by default) -->
+    <section id="compareSection" class="card compare-card hidden">
+      <div class="compare-header">
+        <h2>Strategy Comparison: First Fit vs Best Fit</h2>
+        <button id="closeCompareBtn" class="btn btn-secondary">Close Comparison</button>
+      </div>
+      <div class="compare-columns">
+        <div class="compare-col" id="compareColFF">
+          <h3>First Fit</h3>
+          <div class="memory-bar-wrapper">
+            <div id="compareBarFF" class="memory-bar"></div>
+          </div>
+          <div id="compareStatsFF" class="compare-stats"></div>
+        </div>
+        <div class="compare-col" id="compareColBF">
+          <h3>Best Fit</h3>
+          <div class="memory-bar-wrapper">
+            <div id="compareBarBF" class="memory-bar"></div>
+          </div>
+          <div id="compareStatsBF" class="compare-stats"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Normal View: Memory Bar & Statistics -->
+    <div id="normalViewContainer">
+      <!-- Memory Bar -->
+      <section class="card memory-bar-card">
+        <div class="section-title-row">
+          <h2>Memory Visualization Bar</h2>
+          <span id="highlightInfo" class="highlight-info hidden"></span>
+        </div>
+        <div class="memory-bar-wrapper">
+          <div id="memoryBar" class="memory-bar"></div>
+        </div>
+        <div class="memory-bar-legend">
+          <span class="legend-item"><span class="legend-swatch free-swatch"></span> Free Block</span>
+          <span class="legend-item"><span class="legend-swatch alloc-swatch"></span> Allocated Process Block</span>
+          <span class="legend-item"><span class="legend-swatch highlight-swatch"></span> Highlighted Selection</span>
+        </div>
+      </section>
+
+      <!-- Statistics Cards -->
+      <section class="stats-section">
+        <div class="stat-card">
+          <div class="stat-value" id="statUsed">0</div>
+          <div class="stat-label">Used Units</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statFree">1000</div>
+          <div class="stat-label">Free Units</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statUtil">0.00%</div>
+          <div class="stat-label">Utilization</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statLargestFree">1000</div>
+          <div class="stat-label">Largest Free Block</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statFreeBlocks">1</div>
+          <div class="stat-label">Free Blocks</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statAllocBlocks">0</div>
+          <div class="stat-label">Allocated Blocks</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statFrag">0.00%</div>
+          <div class="stat-label">External Fragmentation</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statWaiting">0</div>
+          <div class="stat-label">Waiting Queue</div>
+        </div>
+      </section>
+
+      <!-- Internal Data Structures View -->
+      <section class="card data-structures-card">
+        <h2>Internal C++ Data Structures (Live View)</h2>
+
+        <!-- Doubly Linked List -->
+        <div class="ds-subcard">
+          <div class="ds-title">
+            <h3>1. Doubly Linked List &mdash; <code>DoublyLinkedList&lt;Block&gt;</code></h3>
+            <span class="ds-note">Contiguous memory block nodes in address order with bidirectional links (<code>prev</code> / <code>next</code>)</span>
+          </div>
+          <div id="linkedListView" class="linked-list-view"></div>
+        </div>
+
+        <!-- Hash Table -->
+        <div class="ds-subcard">
+          <div class="ds-title">
+            <h3>2. Process Lookup Hash Table &mdash; <code>HashTable&lt;ListNode&lt;Block&gt;*&gt;</code></h3>
+            <span class="ds-note">17 buckets with separate chaining &amp; djb2 hash function for $O(1)$ process lookup (Click a PID chip to highlight)</span>
+          </div>
+          <div id="hashTableView" class="hash-table-view"></div>
+        </div>
+
+        <!-- Waiting Queue -->
+        <div class="ds-subcard">
+          <div class="ds-title">
+            <h3>3. Waiting Queue &mdash; <code>Queue&lt;WaitingRequest&gt;</code></h3>
+            <span class="ds-note">FIFO singly linked queue holding unsatisfied requests until free space is available</span>
+          </div>
+          <div id="queueView" class="queue-view"></div>
+        </div>
+      </section>
+
+      <!-- Block Table -->
+      <section class="card block-table-card">
+        <div class="table-header-row">
+          <h2>Memory Block Table</h2>
+          <div class="filter-tab-bar">
+            <button id="filterAllBtn" class="tab-btn active">All Blocks</button>
+            <button id="filterAllocBtn" class="tab-btn">Allocated Blocks Only</button>
+            <button id="filterFreeBtn" class="tab-btn">Free Blocks Only</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Index</th>
+                <th>Start Address</th>
+                <th>End Address</th>
+                <th>Size (Units)</th>
+                <th>Status</th>
+                <th>Process ID</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="blockTableBody">
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Command Log -->
+      <section class="card log-card">
+        <div class="log-header">
+          <h2>Execution Log</h2>
+          <span class="log-count" id="logCount">0 commands executed</span>
+        </div>
+        <div id="logContainer" class="log-container">
+          <div class="log-empty">No commands executed yet. Choose a preset or allocate memory above.</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Simulates contiguous dynamic memory allocation (not paging). Backend: C++17 compiled to WebAssembly on Vercel.</p>
+      <p><a href="https://github.com/Arnav-2608/Virtual_Memory_Manager" target="_blank" rel="noopener noreferrer">GitHub Repository</a> &bull; Data Structures Mini Project</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
