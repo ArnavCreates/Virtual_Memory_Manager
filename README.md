@@ -1,11 +1,11 @@
 # Virtual Memory Manager: A Dynamic Memory Allocation Simulator Using Linked Lists, Queues and Hash Tables
 
-[![CI](https://github.com/Arnav-2608/Virtual_Memory_Manager/actions/workflows/ci.yml/badge.svg)](https://github.com/Arnav-2608/Virtual_Memory_Manager/actions/workflows/ci.yml)
+[![CI](https://github.com/ArnavCreates/Virtual_Memory_Manager/actions/workflows/ci.yml/badge.svg)](https://github.com/ArnavCreates/Virtual_Memory_Manager/actions/workflows/ci.yml)
 [![Backend: C++17](https://img.shields.io/badge/backend-C%2B%2B17-blue.svg)](backend/)
 [![WebAssembly](https://img.shields.io/badge/runtime-WebAssembly-purple.svg)](wasm/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **Live Deployment:** [https://virtual-memory-manager.vercel.app](https://virtual-memory-manager.vercel.app) *(Deploy on Vercel)*  
+> **Live Deployment:** [https://virtualmemorymanager.vercel.app/](https://virtualmemorymanager.vercel.app/) *(Deploy on Vercel)*  
 > **UI Preview:**  
 > *(Screenshot placeholder: Run the web UI locally or see live deployment)*
 
@@ -24,10 +24,10 @@ This simulator models **contiguous dynamic memory allocation** as used in operat
   - **First Fit**: Scans from memory address 0 and selects the first free hole large enough.
   - **Best Fit**: Scans all free holes and selects the smallest hole that satisfies the request, minimizing wasted remainder. Breaks ties in favor of lower start addresses.
   - **Block Splitting**: Exact fits allocate the block intact; larger holes are cleanly split into an allocated block and a free remainder.
-- **Immediate Coalescing**: On `FREE`, adjacent free neighbors (both left and right) are merged in $O(1)$ time to prevent premature fragmentation.
+- **Immediate Coalescing**: On `FREE`, adjacent free neighbors (both left and right) are merged in O(1) time to prevent premature fragmentation.
 - **Memory Compaction**: Shifts all allocated blocks towards address 0, updates block bounds without invalidating node pointers, combines all free space into one trailing block at the end, and retries queued requests.
 - **FIFO Waiting Queue**: Requests that exceed available contiguous free memory are queued and automatically retried upon `FREE` or `COMPACT`.
-- **Fast $O(1)$ Process Lookup**: djb2 hash table with 17 buckets maps process IDs directly to their linked-list node pointers for instant lookup (`FIND <pid>`).
+- **Fast O(1) Process Lookup**: djb2 hash table with 17 buckets maps process IDs directly to their linked-list node pointers for instant lookup (`FIND <pid>`).
 - **Interactive Multi-Platform Support**:
   - **Native Interactive CLI**: Standalone C++ executable with aligned ASCII tables and status reports.
   - **Web Visualizer**: Responsive HTML/CSS/JavaScript interface running via WebAssembly in a Vercel Serverless Function.
@@ -67,9 +67,9 @@ Every core data structure is implemented by hand in `backend/include/` with expl
 
 | Data Structure | Header File | Purpose in Simulator | Why Chosen & Key Complexity |
 |---|---|---|---|
-| **Doubly Linked List** | [`DoublyLinkedList.h`](backend/include/DoublyLinkedList.h) | Tracks contiguous memory blocks in address order | Exposes node pointers so `MemoryManager` can splice, split, and merge (`coalesce`) neighbor blocks in $O(1)$ time without linear scanning. |
-| **FIFO Queue** | [`Queue.h`](backend/include/Queue.h) | Tracks processes waiting for memory to become available | Singly linked nodes with head and tail pointers ensure strict $O(1)$ FIFO `enqueue` at tail and `dequeue` at head. Preserves request arrival order. |
-| **Hash Table** | [`HashTable.h`](backend/include/HashTable.h) | Maps process ID string (`std::string`) to `ListNode<Block>*` | Provides $O(1)$ average-time lookup for `FIND <pid>` and release operations. Uses **17 fixed buckets** (prime number) and **djb2 hashing** with separate chaining to guarantee collision resolution. |
+| **Doubly Linked List** | [`DoublyLinkedList.h`](backend/include/DoublyLinkedList.h) | Tracks contiguous memory blocks in address order | Exposes node pointers so `MemoryManager` can splice, split, and merge (`coalesce`) neighbor blocks in O(1) time without linear scanning. |
+| **FIFO Queue** | [`Queue.h`](backend/include/Queue.h) | Tracks processes waiting for memory to become available | Singly linked nodes with head and tail pointers ensure strict O(1) FIFO `enqueue` at tail and `dequeue` at head. Preserves request arrival order. |
+| **Hash Table** | [`HashTable.h`](backend/include/HashTable.h) | Maps process ID string (`std::string`) to `ListNode<Block>*` | Provides O(1) average-time lookup for `FIND <pid>` and release operations. Uses **17 fixed buckets** (prime number) and **djb2 hashing** with separate chaining to guarantee collision resolution. |
 
 *(All STL containers for these three roles—such as `std::list`, `std::deque`, `std::map`, and `std::unordered_map`—are strictly avoided as mandated by requirement R1).*
 
@@ -83,7 +83,7 @@ Every core data structure is implemented by hand in `backend/include/` with expl
 - **Splitting**: If `node->data.size == request`, the block status is toggled to allocated. If `node->data.size > request`, `node->data.size` is shrunk to `request`, and a new free block of size `oldSize - request` is inserted immediately after it via `insertAfter`.
 
 ### 5.2 Release & Coalescing
-- The process block pointer is retrieved from the Hash Table in $O(1)$ average time, and its entry is removed.
+- The process block pointer is retrieved from the Hash Table in O(1) average time, and its entry is removed.
 - The block is marked free (`pid = ""`).
 - **Coalescing**:
   - If `node->next` is free: `node->size += next->size`, and `next` is unlinked and deleted via `blocks_.erase(next)`.
@@ -118,7 +118,7 @@ Keywords are case-insensitive. Process IDs are normalized to uppercase (`[A-Za-z
 | `FREE` | `<pid>` | Deallocates process memory (coalescing free neighbors) or cancels waiting request. | `OK` or `ERROR` |
 | `COMPACT` | *(none)* | Relocates allocated blocks to address 0 and merges all free space. | `OK` or `INFO` |
 | `STRATEGY` | `<FIRST_FIT \| BEST_FIT>` | Switches the active allocation algorithm mid-simulation. | `OK` |
-| `FIND` | `<pid>` | Performs $O(1)$ hash table lookup to display bucket index and block bounds. | `INFO` or `ERROR` |
+| `FIND` | `<pid>` | Performs O(1) hash table lookup to display bucket index and block bounds. | `INFO` or `ERROR` |
 | `DISPLAY` | *(none)* | Summarizes full memory layout (all blocks). | `INFO` |
 | `DISPLAY FREE` | *(none)* | Summarizes only free blocks with counts and sizes. | `INFO` |
 | `DISPLAY ALLOCATED`| *(none)* | Summarizes only allocated blocks with owner PIDs. | `INFO` |
@@ -291,4 +291,4 @@ The WebAssembly module is pre-compiled into `wasm/vmm.js` and committed to git. 
 - **Team Members:**
   - Arnav
 - **Academic Mentor / Guide:** *(Faculty Name Placeholder)*
-- **Repository:** [https://github.com/Arnav-2608/Virtual_Memory_Manager](https://github.com/Arnav-2608/Virtual_Memory_Manager)
+- **Repository:** [https://github.com/ArnavCreates/Virtual_Memory_Manager](https://github.com/ArnavCreates/Virtual_Memory_Manager)

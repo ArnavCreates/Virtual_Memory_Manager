@@ -135,12 +135,19 @@
   function setControlsDisabled(disabled) {
     state.inFlight = disabled;
     el.loadingIndicator.classList.toggle('hidden', !disabled);
-    const buttons = document.querySelectorAll('button, select, input');
+    const buttons = document.querySelectorAll('button, select, input, textarea');
     buttons.forEach(b => {
-      if (b !== el.closeCompareBtn) {
+      if (b !== el.closeCompareBtn && b !== el.toastCloseBtn) {
         b.disabled = disabled;
       }
     });
+    if (!disabled) {
+      // Re-evaluate dependent controls
+      const hasValidProcess = el.freePidSelect && el.freePidSelect.value !== '' && el.freePidSelect.value !== 'No processes';
+      if (el.freeBtn) {
+        el.freeBtn.disabled = !hasValidProcess;
+      }
+    }
   }
 
   function showError(msg) {
@@ -210,9 +217,11 @@
       queue.forEach(q => { if (q.pid) pids.add(q.pid); });
     }
 
+    const previousSelected = el.freePidSelect.value;
     el.freePidSelect.innerHTML = '';
     if (pids.size === 0) {
       const opt = document.createElement('option');
+      opt.value = '';
       opt.textContent = 'No processes';
       opt.disabled = true;
       opt.selected = true;
@@ -225,25 +234,25 @@
         opt.textContent = pid;
         el.freePidSelect.appendChild(opt);
       });
-      el.freeBtn.disabled = state.inFlight;
+      if (previousSelected && pids.has(previousSelected)) {
+        el.freePidSelect.value = previousSelected;
+      }
+      el.freeBtn.disabled = state.inFlight || !el.freePidSelect.value;
     }
   }
 
   // Highlight selection handler
   function setHighlightedPid(pid) {
-    if (state.highlightedPid === pid) {
+    const normPid = pid ? pid.toUpperCase() : null;
+    if (state.highlightedPid === normPid || !normPid) {
       state.highlightedPid = null;
       el.highlightInfo.classList.add('hidden');
       el.highlightInfo.textContent = '';
     } else {
-      state.highlightedPid = pid;
-      if (pid) {
-        el.highlightInfo.classList.remove('hidden');
-        el.highlightInfo.textContent = `Highlighted Process: ${pid} (Click again to clear)`;
-        el.findPidInput.value = pid;
-      } else {
-        el.highlightInfo.classList.add('hidden');
-      }
+      state.highlightedPid = normPid;
+      el.highlightInfo.classList.remove('hidden');
+      el.highlightInfo.textContent = `Highlighted Process: ${normPid} (Click again to clear)`;
+      el.findPidInput.value = normPid;
     }
     if (state.lastResponse) {
       renderMemoryBar(state.lastResponse.blocks, state.lastResponse.config.totalMemory);
@@ -519,6 +528,17 @@
       const data = await runSimulationApi(state.totalMemory, state.initialStrategy, state.commands);
       state.lastResponse = data;
 
+      // Clear highlighted process if it is no longer allocated or waiting
+      if (state.highlightedPid) {
+        const stillExists = (data.blocks && data.blocks.some(b => b.status === 'ALLOCATED' && b.pid.toUpperCase() === state.highlightedPid)) ||
+                            (data.waitingQueue && data.waitingQueue.some(q => q.pid.toUpperCase() === state.highlightedPid));
+        if (!stillExists) {
+          state.highlightedPid = null;
+          el.highlightInfo.classList.add('hidden');
+          el.highlightInfo.textContent = '';
+        }
+      }
+
       // Sync active strategy dropdown
       if (data.config && data.config.strategy) {
         el.strategySelect.value = data.config.strategy;
@@ -538,6 +558,17 @@
       if (showToastForLast && data.log && data.log.length > 0) {
         const lastEntry = data.log[data.log.length - 1];
         showToast(lastEntry.status, lastEntry.message, lastEntry.details);
+
+        // Auto-highlight if FIND succeeded; clear highlighting if FIND failed for that PID
+        if (lastEntry.command && lastEntry.command.toUpperCase().startsWith('FIND ')) {
+          const parts = lastEntry.command.trim().split(/\s+/);
+          const searchedPid = parts[1] ? parts[1].toUpperCase() : null;
+          if (lastEntry.status === 'INFO' && searchedPid) {
+            setHighlightedPid(searchedPid);
+          } else if (lastEntry.status === 'ERROR' && searchedPid && state.highlightedPid === searchedPid) {
+            setHighlightedPid(null);
+          }
+        }
       }
     } catch (err) {
       showError(err.message || 'Failed to communicate with simulation engine');
@@ -550,7 +581,7 @@
   function appendCommand(cmd, showToastForLast = true) {
     if (!cmd || !cmd.trim()) return;
     state.commands.push(cmd.trim());
-    updateSimulation(showToastForLast);
+    return updateSimulation(showToastForLast);
   }
 
   // Strategy Comparison Runner
@@ -659,11 +690,16 @@
       const preset = PRESETS[key];
       if (!preset) return;
 
+      state.highlightedPid = null;
+      el.highlightInfo.classList.add('hidden');
+      el.highlightInfo.textContent = '';
+
       state.totalMemory = preset.totalMemory;
       state.initialStrategy = preset.strategy;
       state.commands = [...preset.commands];
       el.totalMemoryInput.value = preset.totalMemory;
       el.strategySelect.value = preset.strategy;
+      el.presetSelect.value = '';
 
       updateSimulation();
     });
@@ -693,8 +729,13 @@
     // FREE
     el.freeBtn.addEventListener('click', () => {
       const pid = el.freePidSelect.value;
-      if (!pid) return;
+      if (!pid || pid === 'No processes') return;
       appendCommand(`FREE ${pid}`, true);
+    });
+
+    el.freePidSelect.addEventListener('change', () => {
+      const pid = el.freePidSelect.value;
+      el.freeBtn.disabled = !pid || pid === 'No processes';
     });
 
     // FIND
@@ -705,8 +746,37 @@
         return;
       }
       appendCommand(`FIND ${pid}`, true);
-      setHighlightedPid(pid);
     });
+
+    // Enter Key Navigation for input fields
+    [el.allocPidInput, el.allocSizeInput].forEach(inp => {
+      if (inp) {
+        inp.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            el.allocBtn.click();
+          }
+        });
+      }
+    });
+
+    if (el.findPidInput) {
+      el.findPidInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          el.findBtn.click();
+        }
+      });
+    }
+
+    if (el.totalMemoryInput) {
+      el.totalMemoryInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          el.applyMemoryBtn.click();
+        }
+      });
+    }
 
     // Actions
     el.compactBtn.addEventListener('click', () => appendCommand('COMPACT', true));
@@ -768,13 +838,20 @@
       if (state.commands.length === 0 || confirm('Reset all memory and clear history?')) {
         state.commands = [];
         state.highlightedPid = null;
+        el.highlightInfo.classList.add('hidden');
+        el.highlightInfo.textContent = '';
         updateSimulation(false);
-        showToast('INFO', 'Memory reset to initial empty state (1000 free units)');
+        showToast('INFO', `Memory reset to initial empty state (${state.totalMemory} free units)`);
       }
     });
 
     // Compare
-    el.compareBtn.addEventListener('click', runComparison);
+    el.compareBtn.addEventListener('click', async () => {
+      await runComparison();
+      if (!el.compareSection.classList.contains('hidden')) {
+        el.compareSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
     el.closeCompareBtn.addEventListener('click', () => {
       el.compareSection.classList.add('hidden');
     });
