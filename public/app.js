@@ -137,7 +137,7 @@
     el.loadingIndicator.classList.toggle('hidden', !disabled);
     const buttons = document.querySelectorAll('button, select, input, textarea');
     buttons.forEach(b => {
-      if (b !== el.closeCompareBtn && b !== el.toastCloseBtn) {
+      if (b !== el.closeCompareBtn && b !== el.toastCloseBtn && b.id !== 'themeToggleBtn') {
         b.disabled = disabled;
       }
     });
@@ -887,8 +887,55 @@
     el.filterFreeBtn.addEventListener('click', () => setFilter('FREE'));
   }
 
+  // Theme Toggle Controller
+  function initTheme() {
+    const toggleBtn = document.getElementById('themeToggleBtn');
+    const toggleIcon = document.getElementById('themeToggleIcon');
+    const toggleText = document.getElementById('themeToggleText');
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      try {
+        localStorage.setItem('vmm_theme', theme);
+      } catch (_) {}
+      if (toggleIcon && toggleText) {
+        if (theme === 'light') {
+          toggleIcon.textContent = '🌙';
+          toggleText.textContent = 'Dark Mode';
+          if (toggleBtn) toggleBtn.setAttribute('aria-label', 'Switch to dark mode');
+        } else {
+          toggleIcon.textContent = '☀️';
+          toggleText.textContent = 'Light Mode';
+          if (toggleBtn) toggleBtn.setAttribute('aria-label', 'Switch to light mode');
+        }
+      }
+    }
+
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(currentTheme);
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const active = document.documentElement.getAttribute('data-theme') || 'dark';
+        const next = active === 'light' ? 'dark' : 'light';
+        applyTheme(next);
+      });
+    }
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+        try {
+          if (!localStorage.getItem('vmm_theme')) {
+            applyTheme(e.matches ? 'light' : 'dark');
+          }
+        } catch (_) {}
+      });
+    }
+  }
+
   // Initialize
   function init() {
+    initTheme();
     attachEventListeners();
     updateSimulation();
   }

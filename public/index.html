@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Virtual Memory Manager Simulator</title>
   <link rel="stylesheet" href="style.css">
+  <script>
+    (function() {
+      try {
+        const savedTheme = localStorage.getItem('vmm_theme');
+        const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        if (savedTheme === 'light' || (!savedTheme && prefersLight)) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
 </head>
 <body>
   <div class="app-container">
@@ -15,7 +30,13 @@
         <p class="subtitle">Dynamic contiguous memory allocation simulator using custom Doubly Linked Lists, FIFO Queues, and Hash Tables</p>
       </div>
       <div class="header-badge">
-        <span class="badge">Backend: C++17 &rarr; WebAssembly</span>
+        <div class="header-controls">
+          <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle light/dark theme" title="Toggle Light/Dark Theme">
+            <span id="themeToggleIcon" class="theme-toggle-icon">☀️</span>
+            <span id="themeToggleText">Light Mode</span>
+          </button>
+          <span class="badge">Backend: C++17 &rarr; WebAssembly</span>
+        </div>
         <div id="loadingIndicator" class="loading-indicator hidden">
           <span class="spinner"></span> Running C++ engine...
         </div>
