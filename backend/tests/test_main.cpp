@@ -12,8 +12,6 @@
 #include <string>
 #include <vector>
 
-// Purpose: Comprehensive unit and scenario test suite verifying data structures and memory allocation invariants.
-
 static int g_testsPassed = 0;
 static int g_testsFailed = 0;
 
@@ -35,7 +33,7 @@ static bool approxEqual(double a, double b, double eps = 0.05) {
 // -------------------------------------------------------------
 
 void testDoublyLinkedList() {
-    std::cout << "[TEST] DoublyLinkedList: push, insert, erase, bidirectionality\n";
+    std::cout << "[TEST] DoublyLinkedList: push, insert, erase, traversal\n";
     vmm::DoublyLinkedList<int> list;
     CHECK(list.empty(), "New list is empty");
     CHECK(list.size() == 0, "New list size is 0");
@@ -98,18 +96,21 @@ void testQueue() {
     CHECK(q.size() == 3, "Queue size 3 after 3 enqueues");
 
     CHECK(q.front(out) && out == "REQ1", "Front is REQ1");
-    CHECK(q.dequeue(out) && out == "REQ1", "Dequeued REQ1");
-    CHECK(q.dequeue(out) && out == "REQ2", "Dequeued REQ2");
-    CHECK(q.size() == 1, "Size is 1");
 
-    std::vector<std::string> remaining;
+    // Test forEach traversal without mutating
+    std::vector<std::string> collected;
     q.forEach([&](const std::string& item) {
-        remaining.push_back(item);
+        collected.push_back(item);
     });
-    CHECK(remaining.size() == 1 && remaining[0] == "REQ3", "forEach order preserved");
+    CHECK(collected.size() == 3, "forEach visited 3 items");
+    CHECK(collected[0] == "REQ1" && collected[1] == "REQ2" && collected[2] == "REQ3", "Traversal in FIFO order");
 
-    CHECK(q.dequeue(out) && out == "REQ3", "Dequeued REQ3");
-    CHECK(q.empty(), "Queue is empty after dequeuing all");
+    // Test dequeue order
+    CHECK(q.dequeue(out) && out == "REQ1", "First dequeued is REQ1");
+    CHECK(q.dequeue(out) && out == "REQ2", "Second dequeued is REQ2");
+    CHECK(q.dequeue(out) && out == "REQ3", "Third dequeued is REQ3");
+    CHECK(q.empty(), "Queue empty after draining");
+    CHECK(!q.dequeue(out), "Dequeue on drained returns false");
 }
 
 void testHashTable() {
@@ -118,35 +119,37 @@ void testHashTable() {
     CHECK(table.size() == 0, "Initial table size 0");
     CHECK(table.bucketCount() == 17, "Bucket count is 17");
 
-    CHECK(table.insert("P1", 100), "Inserted P1");
-    CHECK(!table.insert("P1", 200), "Duplicate P1 rejected");
-    CHECK(table.size() == 1, "Size is 1");
+    // Basic insert and find
+    CHECK(table.insert("P1", 100), "Insert P1 succeeds");
+    CHECK(!table.insert("P1", 200), "Duplicate key P1 rejected");
+    CHECK(table.size() == 1, "Size is 1 after duplicate attempt");
 
     int* val = table.find("P1");
-    CHECK(val != nullptr && *val == 100, "Found P1 with value 100");
-    CHECK(table.contains("P1"), "contains(P1) is true");
-    CHECK(!table.contains("P99"), "contains(P99) is false");
+    CHECK(val != nullptr && *val == 100, "Lookup P1 returns 100");
+    CHECK(table.find("NON_EXISTENT") == nullptr, "Lookup missing key returns nullptr");
+    CHECK(table.contains("P1"), "contains(P1) true");
+    CHECK(!table.contains("NON_EXISTENT"), "contains(missing) false");
 
-    // Insert 200 items to force collisions in 17 buckets
+    // Collision handling: insert multiple keys
     for (int i = 0; i < 200; ++i) {
         std::string key = "KEY_" + std::to_string(i);
-        CHECK(table.insert(key, i), "Inserted " + key);
+        CHECK(table.insert(key, i * 10), "Insert " + key);
     }
-    CHECK(table.size() == 201, "Size is 201");
+    CHECK(table.size() == 201, "Size is 201 after inserting 200 items + P1");
 
-    // Check all 200 items can be found
+    // Verify all keys can be found despite collisions
     bool allFound = true;
     for (int i = 0; i < 200; ++i) {
         std::string key = "KEY_" + std::to_string(i);
-        int* foundVal = table.find(key);
-        if (foundVal == nullptr || *foundVal != i) {
+        int* v = table.find(key);
+        if (v == nullptr || *v != i * 10) {
             allFound = false;
             break;
         }
     }
-    CHECK(allFound, "All 200 keys found despite collisions");
+    CHECK(allFound, "All 200 keys retrieved correctly under heavy collision");
 
-    // Erase all 200 keys
+    // Erase keys
     bool allErased = true;
     for (int i = 0; i < 200; ++i) {
         std::string key = "KEY_" + std::to_string(i);
@@ -162,7 +165,7 @@ void testHashTable() {
 }
 
 // -------------------------------------------------------------
-// Scenario Tests (T1 to T12)
+// Scenario Tests
 // -------------------------------------------------------------
 
 static void executeAndValidate(vmm::MemoryManager& mgr, const std::string& cmd, int lineNum, vmm::LogEntry& entry) {
@@ -172,8 +175,8 @@ static void executeAndValidate(vmm::MemoryManager& mgr, const std::string& cmd, 
     CHECK(mgr.validate(&reason), "Invariant check after '" + cmd + "': " + reason);
 }
 
-void testT1() {
-    std::cout << "[TEST T1] Basic allocation and fragmentation: 1000 units, First Fit\n";
+void testBasicAllocation() {
+    std::cout << "[TEST] Basic allocation and fragmentation: 1000 units, First Fit\n";
     vmm::MemoryManager mgr(1000, vmm::Strategy::FIRST_FIT);
     vmm::LogEntry entry;
 
@@ -206,8 +209,8 @@ void testT1() {
     CHECK(approxEqual(s.externalFragmentationPercent, 4.76), "Fragmentation is 4.76%");
 }
 
-void testT2a() {
-    std::cout << "[TEST T2a] First Fit vs Best Fit comparison scenario (First Fit)\n";
+void testFirstFitComparison() {
+    std::cout << "[TEST] First Fit vs Best Fit comparison (First Fit)\n";
     vmm::MemoryManager mgr(1000, vmm::Strategy::FIRST_FIT);
     vmm::LogEntry entry;
 
@@ -243,8 +246,8 @@ void testT2a() {
     CHECK(approxEqual(s.externalFragmentationPercent, 55.36), "Fragmentation is 55.36%");
 }
 
-void testT2b() {
-    std::cout << "[TEST T2b] First Fit vs Best Fit comparison scenario (Best Fit)\n";
+void testBestFitComparison() {
+    std::cout << "[TEST] First Fit vs Best Fit comparison (Best Fit)\n";
     vmm::MemoryManager mgr(1000, vmm::Strategy::BEST_FIT);
     vmm::LogEntry entry;
 
@@ -280,8 +283,8 @@ void testT2b() {
     CHECK(approxEqual(s.externalFragmentationPercent, 46.43), "Fragmentation is 46.43%");
 }
 
-void testT3() {
-    std::cout << "[TEST T3] Coalescing of adjacent free blocks\n";
+void testFreeCoalescing() {
+    std::cout << "[TEST] Coalescing of adjacent free blocks\n";
     vmm::MemoryManager mgr(1000, vmm::Strategy::FIRST_FIT);
     vmm::LogEntry entry;
 
@@ -304,8 +307,8 @@ void testT3() {
     CHECK(mgr.processTable().size() == 0, "Hash table is completely empty");
 }
 
-void testT4() {
-    std::cout << "[TEST T4] Waiting Queue and automatic retry on FREE\n";
+void testWaitingQueue() {
+    std::cout << "[TEST] Waiting Queue and automatic retry on FREE\n";
     vmm::MemoryManager mgr(500, vmm::Strategy::FIRST_FIT);
     vmm::LogEntry entry;
 
@@ -317,7 +320,7 @@ void testT4() {
     CHECK(entry.status == vmm::CommandStatus::QUEUED, "P4 was QUEUED");
     CHECK(mgr.waitingQueue().size() == 2, "Queue has 2 requests [P3, P4]");
 
-    // T4b: FREE P1 -> P3 is placed
+    // FREE P1 -> P3 is placed
     executeAndValidate(mgr, "FREE P1", 5, entry);
     CHECK(mgr.waitingQueue().size() == 1, "Queue has 1 request [P4]");
     bool p3Mentioned = false;
@@ -334,7 +337,7 @@ void testT4() {
     n = n->next;
     CHECK(n->data.start == 300 && n->data.size == 200 && n->data.pid == "P2", "P2 at 300..499");
 
-    // T4c: FREE P2 -> P4 is placed
+    // FREE P2 -> P4 is placed
     executeAndValidate(mgr, "FREE P2", 6, entry);
     CHECK(mgr.waitingQueue().empty(), "Queue is empty after P4 placed");
     // State: [0,250,P3] [250,100,P4] [350,150,FREE]
@@ -347,8 +350,8 @@ void testT4() {
     CHECK(n->data.start == 350 && n->data.size == 150 && n->data.isFree, "Free block 150 at 350");
 }
 
-void testT5() {
-    std::cout << "[TEST T5] Compaction and queued request placement\n";
+void testCompaction() {
+    std::cout << "[TEST] Compaction and queued request placement\n";
     vmm::MemoryManager mgr(1000, vmm::Strategy::FIRST_FIT);
     vmm::LogEntry entry;
 
@@ -367,7 +370,7 @@ void testT5() {
     CHECK(entry.status == vmm::CommandStatus::QUEUED, "P5 700 is QUEUED");
     CHECK(entry.message.find("Try COMPACT") != std::string::npos, "Message mentions fragmentation and COMPACT");
 
-    // T5b: COMPACT
+    // COMPACT
     executeAndValidate(mgr, "COMPACT", 8, entry);
     CHECK(entry.status == vmm::CommandStatus::OK, "COMPACT status OK");
     CHECK(mgr.waitingQueue().empty(), "Queue is empty after compaction");
@@ -392,8 +395,8 @@ void testT5() {
     CHECK(p5Node->data.start == 200 && p5Node->data.pid == "P5", "P5 hash entry valid");
 }
 
-void testT6() {
-    std::cout << "[TEST T6] Cancellation of queued requests via FREE\n";
+void testCancelWaiting() {
+    std::cout << "[TEST] Cancellation of queued requests via FREE\n";
     vmm::MemoryManager mgr(100, vmm::Strategy::FIRST_FIT);
     vmm::LogEntry entry;
 
@@ -408,8 +411,8 @@ void testT6() {
     CHECK(mgr.blocks().size() == 1 && mgr.blocks().head()->data.pid == "P1", "Memory unchanged");
 }
 
-void testT7() {
-    std::cout << "[TEST T7] Exact fit allocation (no split)\n";
+void testExactFit() {
+    std::cout << "[TEST] Exact fit allocation (no split)\n";
     vmm::MemoryManager mgr(300, vmm::Strategy::FIRST_FIT);
     vmm::LogEntry entry;
 
@@ -429,8 +432,8 @@ void testT7() {
     CHECK(n->data.start == 200 && n->data.size == 100 && n->data.pid == "P3", "P3 at 200");
 }
 
-void testT8() {
-    std::cout << "[TEST T8] Error handling and syntax validation\n";
+void testErrorHandling() {
+    std::cout << "[TEST] Error handling and syntax validation\n";
     vmm::MemoryManager mgr(1000, vmm::Strategy::FIRST_FIT);
     vmm::LogEntry entry;
 
@@ -470,8 +473,8 @@ void testT8() {
     CHECK(n->data.start == 100 && n->data.size == 900 && n->data.isFree, "Free 900 at 100");
 }
 
-void testT9() {
-    std::cout << "[TEST T9] Mid-script strategy change and Simulator JSON output\n";
+void testStrategySwitch() {
+    std::cout << "[TEST] Mid-script strategy change and Simulator JSON output\n";
     std::string script =
         "ALLOC P1 100\n"
         "ALLOC P2 300\n"
@@ -480,19 +483,18 @@ void testT9() {
         "ALLOC P5 100\n"
         "FREE P2\n"
         "FREE P4\n"
-        "strategy best_fit\n" // lowercase strategy command
+        "strategy best_fit\n"
         "ALLOC P6 140\n";
 
     std::string json = vmm::runSimulation(1000, "FIRST_FIT", script);
     CHECK(json.find("\"ok\": true") != std::string::npos, "Simulation JSON ok is true");
     CHECK(json.find("\"strategy\": \"BEST_FIT\"") != std::string::npos, "JSON config strategy reports BEST_FIT");
-    // Verify P6 placed at 500..639 (Best Fit) rather than 100..239 (First Fit)
     CHECK(json.find("\"start\": 500") != std::string::npos, "P6 placed at start 500");
     CHECK(json.find("\"pid\": \"P6\"") != std::string::npos, "P6 present in blocks");
 }
 
-void testT10() {
-    std::cout << "[TEST T10] Compaction no-op on already compact memory\n";
+void testAlreadyCompact() {
+    std::cout << "[TEST] Compaction no-op on already compact memory\n";
     vmm::MemoryManager mgr(1000, vmm::Strategy::FIRST_FIT);
     vmm::LogEntry entry;
 
@@ -503,13 +505,12 @@ void testT10() {
     CHECK(mgr.blocks().size() == 2, "State unchanged: 2 blocks");
 }
 
-void testT11() {
-    std::cout << "[TEST T11] Stress test: 10,000 pseudo-random commands under both strategies\n";
+void testStressRandomCommands() {
+    std::cout << "[TEST] Stress test: 10,000 pseudo-random commands under both strategies\n";
     for (int stratIdx = 0; stratIdx < 2; ++stratIdx) {
         vmm::Strategy strat = (stratIdx == 0) ? vmm::Strategy::FIRST_FIT : vmm::Strategy::BEST_FIT;
         vmm::MemoryManager mgr(1000, strat);
 
-        // Deterministic LCG random generator
         uint64_t state = 123456789ULL;
         auto nextRand = [&]() -> uint32_t {
             state = state * 6364136223846793005ULL + 1ULL;
@@ -520,22 +521,18 @@ void testT11() {
             uint32_t op = nextRand() % 10;
             vmm::LogEntry entry;
             if (op < 5) {
-                // ALLOC P0..P29 with size 1..300
                 int pNum = nextRand() % 30;
                 int size = 1 + (nextRand() % 300);
                 std::string cmd = "ALLOC P" + std::to_string(pNum) + " " + std::to_string(size);
                 vmm::CommandParser::parseAndExecute(cmd, step + 1, mgr, entry);
             } else if (op < 9) {
-                // FREE P0..P29
                 int pNum = nextRand() % 30;
                 std::string cmd = "FREE P" + std::to_string(pNum);
                 vmm::CommandParser::parseAndExecute(cmd, step + 1, mgr, entry);
             } else {
-                // COMPACT
                 vmm::CommandParser::parseAndExecute("COMPACT", step + 1, mgr, entry);
             }
 
-            // Invariant validation after every step
             std::string reason;
             bool valid = mgr.validate(&reason);
             if (!valid) {
@@ -554,8 +551,8 @@ void testT11() {
     CHECK(true, "10,000 commands completed with zero invariant violations under both strategies");
 }
 
-void testT12() {
-    std::cout << "[TEST T12] Process lookup (FIND) and display filters\n";
+void testFindAndDisplay() {
+    std::cout << "[TEST] Process lookup (FIND) and display filters\n";
     vmm::MemoryManager mgr(1000, vmm::Strategy::FIRST_FIT);
     vmm::LogEntry entry;
 
@@ -603,19 +600,19 @@ int main() {
     testQueue();
     testHashTable();
 
-    testT1();
-    testT2a();
-    testT2b();
-    testT3();
-    testT4();
-    testT5();
-    testT6();
-    testT7();
-    testT8();
-    testT9();
-    testT10();
-    testT11();
-    testT12();
+    testBasicAllocation();
+    testFirstFitComparison();
+    testBestFitComparison();
+    testFreeCoalescing();
+    testWaitingQueue();
+    testCompaction();
+    testCancelWaiting();
+    testExactFit();
+    testErrorHandling();
+    testStrategySwitch();
+    testAlreadyCompact();
+    testStressRandomCommands();
+    testFindAndDisplay();
 
     std::cout << "\n============================================================\n";
     std::cout << "Tests Summary: " << g_testsPassed << " passed, " << g_testsFailed << " failed.\n";

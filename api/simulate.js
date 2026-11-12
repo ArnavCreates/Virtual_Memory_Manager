@@ -1,6 +1,3 @@
-// api/simulate.js
-// Vercel Serverless Function entry point (Node.js, CommonJS)
-
 const { runSimulation } = require('../lib/vmmBridge');
 
 module.exports = async function handler(req, res) {

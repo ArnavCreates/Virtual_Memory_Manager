@@ -3,8 +3,6 @@
 #include <iomanip>
 #include <sstream>
 
-// Purpose: Implementation of hand-written JSON serialization without external libraries.
-
 namespace vmm {
 
 std::string JsonWriter::escapeJson(const std::string& str) {
@@ -19,9 +17,9 @@ std::string JsonWriter::escapeJson(const std::string& str) {
             case '\r': oss << "\\r";  break;
             case '\t': oss << "\\t";  break;
             default:
-                if (static_cast<unsigned char>(c) < 0x20) {
+                if ((unsigned char)c < 0x20) {
                     char buf[8];
-                    std::snprintf(buf, sizeof(buf), "\\u%04x", static_cast<unsigned char>(c));
+                    std::snprintf(buf, sizeof(buf), "\\u%04x", (unsigned char)c);
                     oss << buf;
                 } else {
                     oss << c;
@@ -46,13 +44,13 @@ std::string JsonWriter::writeSuccess(const MemoryManager& manager,
     oss << "{\n";
     oss << "  \"ok\": true,\n";
 
-    // Config section (reporting active strategy at the end of replay)
+    // Configuration
     oss << "  \"config\": {\n";
     oss << "    \"totalMemory\": " << manager.totalMemory() << ",\n";
     oss << "    \"strategy\": \"" << strategyToString(manager.strategy()) << "\"\n";
     oss << "  },\n";
 
-    // Blocks section (DoublyLinkedList)
+    // Memory blocks
     oss << "  \"blocks\": [\n";
     const ListNode<Block>* node = manager.blocks().head();
     int idx = 0;
@@ -87,7 +85,7 @@ std::string JsonWriter::writeSuccess(const MemoryManager& manager,
     }
     oss << "\n  ],\n";
 
-    // Waiting queue section (Queue)
+    // Waiting queue
     oss << "  \"waitingQueue\": [\n";
     int queuePos = 1;
     bool firstQueue = true;
@@ -103,7 +101,7 @@ std::string JsonWriter::writeSuccess(const MemoryManager& manager,
     });
     oss << "\n  ],\n";
 
-    // Hash table section (HashTable with 17 buckets)
+    // Process hash table
     const auto& table = manager.processTable();
     oss << "  \"hashTable\": {\n";
     oss << "    \"bucketCount\": " << table.bucketCount() << ",\n";
@@ -122,7 +120,7 @@ std::string JsonWriter::writeSuccess(const MemoryManager& manager,
     oss << "\n    ]\n";
     oss << "  },\n";
 
-    // Stats section
+    // Statistics
     Stats s = manager.getStats();
     oss << "  \"stats\": {\n";
     oss << "    \"totalMemory\": " << s.totalMemory << ",\n";
@@ -136,7 +134,7 @@ std::string JsonWriter::writeSuccess(const MemoryManager& manager,
     oss << "    \"waitingCount\": " << s.waitingCount << "\n";
     oss << "  },\n";
 
-    // Log section
+    // Execution log
     oss << "  \"log\": [\n";
     for (std::size_t l = 0; l < log.size(); ++l) {
         if (l > 0) oss << ",\n";

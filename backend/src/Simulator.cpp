@@ -6,8 +6,6 @@
 #include <sstream>
 #include <vector>
 
-// Purpose: Implementation of simulation replay runner.
-
 namespace vmm {
 
 namespace {
@@ -15,7 +13,7 @@ namespace {
 std::string toUpper(const std::string& str) {
     std::string res = str;
     for (char& c : res) {
-        c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+        c = static_cast<char>(std::toupper(c));
     }
     return res;
 }
@@ -46,7 +44,6 @@ std::string runSimulation(int totalMemory, const std::string& strategyStr, const
     std::istringstream iss(script);
     std::string line;
     while (std::getline(iss, line)) {
-        // Strip trailing \r if present
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
@@ -60,7 +57,7 @@ std::string runSimulation(int totalMemory, const std::string& strategyStr, const
         }
     }
 
-    // Initialize MemoryManager and replay commands
+    // Run simulation
     MemoryManager manager(totalMemory, strategy);
     std::vector<LogEntry> log;
     int executedCommandNumber = 0;

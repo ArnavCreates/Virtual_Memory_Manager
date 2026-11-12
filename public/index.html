@@ -27,7 +27,7 @@
     <header class="header">
       <div class="header-main">
         <h1>Virtual Memory Manager</h1>
-        <p class="subtitle">Dynamic contiguous memory allocation simulator using custom Doubly Linked Lists, FIFO Queues, and Hash Tables</p>
+        <p class="subtitle">Interactive simulator for contiguous dynamic memory allocation algorithms</p>
       </div>
       <div class="header-badge">
         <div class="header-controls">
@@ -35,7 +35,7 @@
             <span id="themeToggleIcon" class="theme-toggle-icon">☀️</span>
             <span id="themeToggleText">Light Mode</span>
           </button>
-          <span class="badge">Backend: C++17 &rarr; WebAssembly</span>
+          <span class="badge">C++17 &bull; WebAssembly</span>
         </div>
         <div id="loadingIndicator" class="loading-indicator hidden">
           <span class="spinner"></span> Running C++ engine...
@@ -76,11 +76,11 @@
         <div class="form-group">
           <label for="presetSelect">Preset Scenarios:</label>
           <select id="presetSelect">
-            <option value="" disabled selected>-- Select a scenario to load --</option>
-            <option value="basic">1. Basic Allocation &amp; Free (1000 units)</option>
-            <option value="comparison">2. First Fit vs Best Fit (1000 units)</option>
-            <option value="queue">3. Waiting Queue &amp; Auto-Retry (500 units)</option>
-            <option value="compaction">4. Fragmentation &amp; Compaction (1000 units)</option>
+            <option value="" disabled selected>-- Select a preset --</option>
+            <option value="basic">Basic Allocation &amp; Free</option>
+            <option value="comparison">First Fit vs Best Fit Comparison</option>
+            <option value="queue">Waiting Queue &amp; Auto-Retry</option>
+            <option value="compaction">Fragmentation &amp; Compaction</option>
           </select>
         </div>
       </div>
@@ -116,7 +116,7 @@
           <h3>Lookup Process (FIND)</h3>
           <div class="command-row">
             <input type="text" id="findPidInput" placeholder="PID" maxlength="16" value="P1">
-            <button id="findBtn" class="btn btn-info" title="O(1) hash table lookup">Find (O(1) Hash)</button>
+            <button id="findBtn" class="btn btn-info">Find</button>
           </div>
         </div>
       </div>
@@ -175,7 +175,7 @@
       <!-- Memory Bar -->
       <section class="card memory-bar-card">
         <div class="section-title-row">
-          <h2>Memory Visualization Bar</h2>
+          <h2>Memory Map</h2>
           <span id="highlightInfo" class="highlight-info hidden"></span>
         </div>
         <div class="memory-bar-wrapper">
@@ -183,8 +183,8 @@
         </div>
         <div class="memory-bar-legend">
           <span class="legend-item"><span class="legend-swatch free-swatch"></span> Free Block</span>
-          <span class="legend-item"><span class="legend-swatch alloc-swatch"></span> Allocated Process Block</span>
-          <span class="legend-item"><span class="legend-swatch highlight-swatch"></span> Highlighted Selection</span>
+          <span class="legend-item"><span class="legend-swatch alloc-swatch"></span> Allocated Block</span>
+          <span class="legend-item"><span class="legend-swatch highlight-swatch"></span> Highlighted</span>
         </div>
       </section>
 
@@ -226,13 +226,13 @@
 
       <!-- Internal Data Structures View -->
       <section class="card data-structures-card">
-        <h2>Internal C++ Data Structures (Live View)</h2>
+        <h2>Data Structures View</h2>
 
         <!-- Doubly Linked List -->
         <div class="ds-subcard">
           <div class="ds-title">
-            <h3>1. Doubly Linked List &mdash; <code>DoublyLinkedList&lt;Block&gt;</code></h3>
-            <span class="ds-note">Contiguous memory block nodes in address order with bidirectional links (<code>prev</code> / <code>next</code>)</span>
+            <h3>Memory Blocks (Doubly Linked List)</h3>
+            <span class="ds-note">Block list maintained in address order with prev/next pointers</span>
           </div>
           <div id="linkedListView" class="linked-list-view"></div>
         </div>
@@ -240,8 +240,8 @@
         <!-- Hash Table -->
         <div class="ds-subcard">
           <div class="ds-title">
-            <h3>2. Process Lookup Hash Table &mdash; <code>HashTable&lt;ListNode&lt;Block&gt;*&gt;</code></h3>
-            <span class="ds-note">17 buckets with separate chaining &amp; djb2 hash function for O(1) process lookup (Click a PID chip to highlight)</span>
+            <h3>Process Index (Hash Table)</h3>
+            <span class="ds-note">17 buckets with separate chaining &amp; djb2 hash for process lookup (click PID to highlight)</span>
           </div>
           <div id="hashTableView" class="hash-table-view"></div>
         </div>
@@ -249,8 +249,8 @@
         <!-- Waiting Queue -->
         <div class="ds-subcard">
           <div class="ds-title">
-            <h3>3. Waiting Queue &mdash; <code>Queue&lt;WaitingRequest&gt;</code></h3>
-            <span class="ds-note">FIFO singly linked queue holding unsatisfied requests until free space is available</span>
+            <h3>Waiting Queue</h3>
+            <span class="ds-note">FIFO queue holding requests waiting for sufficient contiguous memory</span>
           </div>
           <div id="queueView" class="queue-view"></div>
         </div>
@@ -299,7 +299,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <p>Simulates contiguous dynamic memory allocation (not paging). Backend: C++17 compiled to WebAssembly on Vercel.</p>
+      <p>Contiguous dynamic memory allocation simulator &bull; C++17 &amp; WebAssembly</p>
       <p><a href="https://github.com/ArnavCreates/Virtual_Memory_Manager" target="_blank" rel="noopener noreferrer">GitHub Repository</a> &bull; <a href="https://virtualmemorymanager.vercel.app/" target="_blank" rel="noopener noreferrer">Live Demo</a> &bull; Data Structures Mini Project</p>
     </footer>
   </div>

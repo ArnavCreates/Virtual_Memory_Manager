@@ -1,10 +1,6 @@
-// public/app.js
-// Client-side controller for Virtual Memory Manager simulator
-
 (function() {
   'use strict';
 
-  // Application State
   const state = {
     totalMemory: 1000,
     initialStrategy: 'FIRST_FIT',

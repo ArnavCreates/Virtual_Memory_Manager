@@ -1,15 +1,8 @@
 #pragma once
 #include <cstddef>
 
-// Purpose: Hand-written FIFO Queue template for tracking waiting memory allocation requests.
-
 namespace vmm {
 
-/**
- * Hand-written FIFO Queue template class.
- * Built from its own singly linked nodes with head and tail pointers.
- * Guarantees O(1) enqueue at tail and O(1) dequeue at head.
- */
 template <typename T>
 class Queue {
 private:

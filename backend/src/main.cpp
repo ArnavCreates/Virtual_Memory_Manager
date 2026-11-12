@@ -8,18 +8,16 @@
 #include <string>
 #include <vector>
 
-// Purpose: Native interactive command-line simulator with human-readable ASCII output.
-
 namespace {
 
 std::string trim(const std::string& str) {
     std::size_t start = 0;
-    while (start < str.size() && std::isspace(static_cast<unsigned char>(str[start]))) {
+    while (start < str.size() && std::isspace(str[start])) {
         ++start;
     }
     if (start == str.size()) return "";
     std::size_t end = str.size() - 1;
-    while (end > start && std::isspace(static_cast<unsigned char>(str[end]))) {
+    while (end > start && std::isspace(str[end])) {
         --end;
     }
     return str.substr(start, end - start + 1);
@@ -28,7 +26,7 @@ std::string trim(const std::string& str) {
 std::string toUpper(const std::string& str) {
     std::string res = str;
     for (char& c : res) {
-        c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+        c = static_cast<char>(std::toupper(c));
     }
     return res;
 }

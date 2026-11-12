@@ -1,7 +1,7 @@
 {
   "name": "virtual-memory-manager",
   "version": "1.0.0",
-  "description": "Virtual Memory Manager: A Dynamic Memory Allocation Simulator Using Linked Lists, Queues and Hash Tables",
+  "description": "Contiguous dynamic memory allocation simulator using custom linked lists, queues, and hash tables",
   "private": true,
   "engines": {
     "node": "22.x"
@@ -13,13 +13,12 @@
   },
   "keywords": [
     "memory-manager",
-    "virtual-memory",
     "data-structures",
     "cpp17",
     "webassembly",
     "first-fit",
     "best-fit"
   ],
-  "author": "Antigravity Pair Programmer",
+  "author": "Arnav",
   "license": "MIT"
 }

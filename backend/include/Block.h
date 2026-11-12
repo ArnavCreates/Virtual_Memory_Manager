@@ -2,13 +2,8 @@
 #include <string>
 #include <vector>
 
-// Purpose: Definitions for Block, Strategy, CommandStatus, WaitingRequest, CommandResult, Stats, and LogEntry.
-
 namespace vmm {
 
-/**
- * Contiguous virtual memory block.
- */
 struct Block {
     int start = 0;
     int size = 0;
@@ -16,17 +11,11 @@ struct Block {
     std::string pid = "";
 };
 
-/**
- * Memory allocation search strategies.
- */
 enum class Strategy {
     FIRST_FIT,
     BEST_FIT
 };
 
-/**
- * Execution status for executed commands.
- */
 enum class CommandStatus {
     OK,
     QUEUED,
@@ -34,26 +23,17 @@ enum class CommandStatus {
     ERROR
 };
 
-/**
- * Request held in the waiting queue when immediate allocation is not possible.
- */
 struct WaitingRequest {
     std::string pid;
     int size;
 };
 
-/**
- * Result returned by MemoryManager after executing a single command.
- */
 struct CommandResult {
     CommandStatus status;
     std::string message;
     std::vector<std::string> details;
 };
 
-/**
- * Fragmentation and memory utilization statistics.
- */
 struct Stats {
     int totalMemory = 0;
     int usedMemory = 0;
@@ -66,9 +46,6 @@ struct Stats {
     int waitingCount = 0;
 };
 
-/**
- * Entry recorded in the command execution log.
- */
 struct LogEntry {
     int line = 0;
     std::string command;

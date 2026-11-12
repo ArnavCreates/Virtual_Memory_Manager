@@ -3,16 +3,8 @@
 #include <string>
 #include <vector>
 
-// Purpose: Hand-written Hash Table with separate chaining (17 buckets, djb2 hash) for O(1) process lookup.
-
 namespace vmm {
 
-/**
- * Hand-written Hash Table template class using separate chaining.
- * Fixed 17 buckets (a prime number) with djb2 hashing algorithm.
- * Provides O(1) average time lookup, insertion, and deletion of process blocks by process ID.
- * Separate chaining ensures collision resolution and correctness without resizing under any load.
- */
 template <typename V>
 class HashTable {
 public:
@@ -42,10 +34,10 @@ public:
     HashTable& operator=(const HashTable&) = delete;
 
     std::size_t bucketIndex(const std::string& key) const {
-        // djb2 hash algorithm
+        // djb2 hash function
         unsigned long hash = 5381;
         for (char c : key) {
-            hash = ((hash << 5) + hash) + static_cast<unsigned char>(c); // hash * 33 + c
+            hash = ((hash << 5) + hash) + c;
         }
         return hash % bucketCount_;
     }
@@ -57,7 +49,7 @@ public:
 
         while (current != nullptr) {
             if (current->key == key) {
-                return false; // Key already exists
+                return false;
             }
             prev = current;
             current = current->next;

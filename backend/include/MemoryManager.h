@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-// Purpose: Core memory manager class simulating dynamic allocation, coalescing, compaction, and queueing.
-
 namespace vmm {
 
 class MemoryManager {
@@ -45,13 +43,8 @@ private:
     int totalMemory_;
     Strategy strategy_;
 
-    // [DS: DoublyLinkedList] Maintains contiguous memory blocks in address order
     DoublyLinkedList<Block> blocks_;
-
-    // [DS: HashTable] Fast O(1) lookup from process ID to its allocated block node
     HashTable<ListNode<Block>*> processTable_;
-
-    // [DS: Queue] FIFO queue for processes waiting for memory to become available
     Queue<WaitingRequest> waitingQueue_;
 
     ListNode<Block>* findFirstFit(int size) const;
