@@ -236,5 +236,5 @@ Virtual_Memory_Manager/
 
 - **Project:** Virtual Memory Manager Simulator
 - **Course:** Data Structures & Algorithms Mini Project
-- **Author:** Arnav ([@ArnavCreates](https://github.com/ArnavCreates))
+- **Author:** Arnav Jain([@ArnavCreates](https://github.com/ArnavCreates)) , Laksh Agrawal.
 - **License:** MIT
